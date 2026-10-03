@@ -8,28 +8,9 @@ if _venv_pkgs and _venv_pkgs[0] not in sys.path:
     sys.path.insert(0, _venv_pkgs[0])
 
 
-def load_env(env_path: str = ".env") -> None:
-    """Load key-value pairs from .env into os.environ if not already set."""
-    if not os.path.exists(env_path):
-        return
-    with open(env_path, "r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-            if "=" in line:
-                k, v = line.split("=", 1)
-            elif ":" in line:
-                k, v = line.split(":", 1)
-            else:
-                continue
-            key = k.strip()
-            val = v.strip().strip("\"'")
-            if key and key not in os.environ:
-                os.environ[key] = val
+from dotenv import load_dotenv
 
-
-load_env()
+load_dotenv()
 
 # Core Configuration
 OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")

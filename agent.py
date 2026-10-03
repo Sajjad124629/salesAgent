@@ -55,6 +55,7 @@ class ScoutAgent:
         self.step = 0
         self.total_cost = 0.0
         self.total_tokens = 0
+        self.last_input_tokens = 0
         self.messages: List[Dict[str, Any]] = []
         self.todo: List[str] = []
         self.is_done = False
@@ -137,15 +138,13 @@ class ScoutAgent:
                 if current_todo:
                     system_with_todo += f"\n\nCURRENT PLAN (todo.json):\n" + "\n".join(f"- {item}" for item in current_todo)
 
-                # Compaction check before calling LLM
-                # Estimate current input tokens from last LLM call or compact if needed
-                last_input_tokens = 0
-                if self.messages:
-                    # Compact if message count is getting large or previous call exceeded COMPACT_AT
+                # Compaction check before calling LLM:
+                # Read usage.input_tokens from previous call. Above COMPACT_AT (6000), compact older messages
+                if self.messages and self.last_input_tokens > COMPACT_AT:
                     self.messages, was_compacted, comp_event = context.compact_messages_if_needed(
                         system_prompt=system_with_todo,
                         messages=self.messages,
-                        input_tokens=self.total_tokens if self.total_tokens > COMPACT_AT else 0,
+                        input_tokens=self.last_input_tokens,
                         call_llm_fn=llm.call_llm,
                     )
                 else:
@@ -162,6 +161,9 @@ class ScoutAgent:
                     print(f"[Error calling LLM]: {str(e)}")
                     self.tracer.log_event("llm_error", {"error": str(e), "step": self.step})
                     break
+
+                # Day 2: After each LLM call, read usage.input_tokens
+                self.last_input_tokens = resp.get("usage", {}).get("prompt_tokens", 0)
 
                 # Accumulate tokens and costs
                 step_tokens = resp.get("usage", {}).get("total_tokens", 0)

@@ -40,11 +40,13 @@ class ToolRegistry:
             })
         return schemas
 
-    def execute(self, name: str, arguments: Dict[str, Any], context: Dict[str, Any]) -> Dict[str, Any]:
+    def execute(self, name: str, arguments: Dict[str, Any], context: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         """
         Executes a registered tool safely with error handling and HITL checks.
         Never raises an unhandled exception.
         """
+        if context is None:
+            context = {}
         tool = self.get_tool(name)
         if not tool:
             return {
